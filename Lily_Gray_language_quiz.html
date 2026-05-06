@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lily Gray — Language Practice Quiz</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f5f4f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a18; min-height: 100vh; padding: 20px; }
+  #app { max-width: 660px; margin: 0 auto; }
+
+  .quiz-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: #534AB7; color: #fff; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .header-text h1 { font-size: 17px; font-weight: 700; }
+  .header-text p { font-size: 13px; color: #666; margin-top: 2px; }
+
+  .progress-wrap { margin-bottom: 20px; }
+  .progress-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .progress-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .progress-skill { font-size: 12px; color: #534AB7; font-weight: 600; }
+  .progress-bar-bg { height: 6px; background: #e4e3df; border-radius: 3px; }
+  .progress-bar-fill { height: 6px; background: #534AB7; border-radius: 3px; transition: width 0.4s ease; }
+
+  .skill-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px; margin-bottom: 14px; letter-spacing: 0.3px; }
+
+  .card { background: #fff; border-radius: 12px; padding: 22px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+  .question-text { font-size: 15px; font-weight: 700; line-height: 1.65; margin-bottom: 16px; white-space: pre-wrap; }
+
+  /* Tip box */
+  .tip-box {
+    background: #E6F1FB;
+    border-left: 3px solid #185FA5;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+  .tip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .tip-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #185FA5; font-weight: 700; }
+  .tip-text { font-size: 13px; color: #0C447C; line-height: 1.55; }
+
+  /* Eye icon button — hidden until first wrong attempt */
+  .hint-btn {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: 1.5px solid #185FA5;
+    border-radius: 20px;
+    padding: 3px 10px 3px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    color: #185FA5;
+    white-space: nowrap;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .hint-btn:hover { background: #d0e8f8; }
+  .hint-btn.visible { display: flex; }
+  .hint-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* Hidden hint reveal */
+  .hint-reveal {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #a8cde8;
+    font-size: 13px;
+    color: #0C447C;
+    line-height: 1.55;
+  }
+  .hint-reveal.open { display: block; }
+
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .opt { display: flex; align-items: flex-start; gap: 12px; background: #fff; border: 1.5px solid #e4e3df; border-radius: 10px; padding: 13px 16px; cursor: pointer; transition: border-color 0.15s; }
+  .opt:hover:not(.no-hover) { border-color: #c0bfd8; }
+  .opt.selected { background: #EEEDFE; border: 2px solid #534AB7; }
+  .opt.correct { background: #EAF3DE; border: 2px solid #1D9E75; }
+  .opt.wrong-tried { background: #FCEBEB; border: 2px solid #E24B4A; opacity: 0.45; cursor: default; }
+  .opt.no-hover { cursor: default; }
+  .letter-circle { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid #c0bfd8; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #666; flex-shrink: 0; }
+  .opt.selected .letter-circle { background: #534AB7; border-color: #534AB7; color: #fff; }
+  .opt.correct .letter-circle { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+  .opt.wrong-tried .letter-circle { background: #E24B4A; border-color: #E24B4A; color: #fff; }
+  .opt-text { font-size: 14px; line-height: 1.5; color: #2a2a28; padding-top: 2px; }
+
+  .btn { border: none; border-radius: 8px; padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; margin-top: 16px; width: 100%; }
+  .btn-primary { background: #534AB7; color: #fff; }
+  .btn-primary:disabled { background: #c8c7d4; cursor: not-allowed; }
+  .btn-primary:not(:disabled):hover { opacity: 0.88; }
+
+  .feedback { border-radius: 0 8px 8px 0; padding: 12px 16px; margin-top: 14px; border-left: 3px solid; }
+  .feedback.correct { background: #EAF3DE; border-color: #1D9E75; }
+  .feedback.wrong { background: #FCEBEB; border-color: #E24B4A; }
+  .feedback-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
+  .feedback.correct .feedback-label { color: #1D9E75; }
+  .feedback.wrong .feedback-label { color: #E24B4A; }
+  .feedback-text { font-size: 13px; line-height: 1.6; color: #2a2a28; }
+
+  .score-ring { width: 100px; height: 100px; margin: 0 auto 16px; position: relative; }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-pct { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 22px; font-weight: 800; color: #1a1a18; }
+  .skill-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0efe9; }
+  .skill-row:last-child { border-bottom: none; }
+  .skill-row-name { font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .skill-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .skill-row-score { font-size: 13px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// Eye icon SVG (closed = locked, open = unlocked)
+var EYE_LOCKED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+var EYE_OPEN  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+
+var QS = [
+  {
+    skill: "Pronoun Case",
+    sc: "#534AB7", sb: "#EEEDFE",
+    q: 'Which pronoun correctly completes the sentence?\n\n"Between you and ___, I think this project has a real chance of winning," said Ms. Alvarez.',
+    tip: "Think about what type of pronoun belongs after a preposition.",
+    hint: "Prepositions like 'between,' 'for,' and 'with' are always followed by an object — so the pronoun must be in objective case (me, him, her, us, them), not subject case (I, he, she, we, they). Try reading the preposition with just the pronoun: does it sound right?",
+    opts: ["I", "me", "myself", "my"],
+    ans: 1,
+    wrongs: [
+      "'I' is a subject pronoun. It works as the subject of a sentence, but not as the object of a preposition. This is a common hypercorrection — 'between you and I' sounds formal but breaks the grammar rule.",
+      null,
+      "'Myself' is a reflexive or intensive pronoun. It is used for emphasis or when the subject and object refer to the same person. It cannot substitute for 'me' after a preposition.",
+      "'My' shows possession — it always pairs with a noun ('my project'). It cannot stand as the object of a preposition on its own."
+    ],
+    exp: "'Between you and me' is correct. After the preposition 'between,' the pronoun must be in objective case. Objective pronouns (me, him, her, us, them) are always required as objects of prepositions.",
+    mapTo: "Q4 (G6.11)", teks: "L.6.1a"
+  },
+  {
+    skill: "Pronoun Person Shift",
+    sc: "#534AB7", sb: "#EEEDFE",
+    q: 'Which word in the passage creates an error in pronoun person consistency?\n\n"A responsible student always comes prepared to class. He or she brings the necessary materials. When a student is unsure about an assignment, you should raise your hand and ask for clarification."',
+    tip: "Check whether the same grammatical person is used consistently throughout the passage.",
+    hint: "The first two sentences use third person — 'a student... he or she.' Now read the last sentence word by word. Find any pronoun that belongs to a different person (first, second, or third). That shift is the error.",
+    opts: ["a student", "he or she", "you", "the teacher"],
+    ans: 2,
+    wrongs: [
+      "'A student' is a noun, not a pronoun. Nouns don't create person-shift errors — look for a pronoun that changes person.",
+      "'He or she' is consistent with 'a student' — both are third person. This is not the error. Read the last sentence carefully.",
+      null,
+      "'The teacher' is a noun phrase, not a pronoun. The error is in a pronoun that shifts away from the person used in the first two sentences."
+    ],
+    exp: "'You' shifts the passage to second person, breaking the third-person consistency established by 'a student... he or she.' The last sentence should use 'he or she should raise his or her hand' to stay consistent.",
+    mapTo: "Q12 (G6.11)", teks: "L.6.1d"
+  },
+  {
+    skill: "Possessive Pronouns",
+    sc: "#534AB7", sb: "#EEEDFE",
+    q: 'Fill in the blank with the correct possessive pronoun.\n\nMia and Jordan both submitted paintings at the art show. When the scorecards came back mixed up, they needed to figure out which scorecard was ___.',
+    tip: "Consider what kind of pronoun stands alone at the end of a sentence to show ownership.",
+    hint: "When a possessive pronoun stands alone — with no noun after it — you need a specific form: mine, yours, his, hers, ours, or theirs. None of these forms ever use an apostrophe. Also match the pronoun to the antecedent: who does it refer to?",
+    opts: ["their's", "theirs", "them", "their"],
+    ans: 1,
+    wrongs: [
+      "Possessive pronouns never take an apostrophe. 'Their's' follows the wrong pattern — you're thinking of possessive nouns (e.g., Jordan's), but possessive pronouns work differently.",
+      null,
+      "'Them' is an objective pronoun — it shows who receives an action ('give it to them'), not who owns something. You need a possessive form here.",
+      "'Their' is a possessive, but it must be followed directly by a noun (e.g., 'their scorecard'). The blank sits at the end of the sentence with no noun after it, so you need the standalone form."
+    ],
+    exp: "'Theirs' is the standalone possessive pronoun for a plural antecedent. Possessive pronouns that stand alone — mine, yours, his, hers, ours, theirs — never take an apostrophe.",
+    mapTo: "Q8 (G6.11)", teks: "L.6.1a"
+  },
+  {
+    skill: "Comma — Nonrestrictive Elements",
+    sc: "#0F6E56", sb: "#E1F5EE",
+    q: 'Which option correctly fixes the punctuation in the sentence?\n\n"The monarch butterfly a creature of remarkable endurance, migrates thousands of miles each year."',
+    tip: "Look at the phrase between 'butterfly' and 'migrates' and decide what punctuation it requires.",
+    hint: "Ask yourself: can the phrase 'a creature of remarkable endurance' be removed without changing the core meaning of the sentence? If yes, it is nonrestrictive — and nonrestrictive phrases must be completely enclosed by punctuation on both sides.",
+    opts: [
+      "The monarch butterfly, a creature of remarkable endurance, migrates thousands of miles each year.",
+      "The monarch butterfly, a creature of remarkable endurance migrates thousands of miles each year.",
+      "The monarch butterfly a creature of remarkable endurance migrates thousands of miles each year.",
+      "No change."
+    ],
+    ans: 0,
+    wrongs: [
+      null,
+      "One comma is present, but punctuation must appear on both sides of a nonrestrictive phrase — not just one side. Count how many commas enclose the phrase and compare to what is needed.",
+      "Removing both commas leaves no punctuation around the nonrestrictive phrase at all. A phrase that can be removed from the sentence without changing its meaning always needs to be set off by punctuation.",
+      "The sentence already has an error — one comma is missing. 'No change' would leave it in place."
+    ],
+    exp: "The correct version has a comma before AND after 'a creature of remarkable endurance.' Both commas are required to fully enclose the nonrestrictive appositive phrase.",
+    mapTo: "Q5 (G6.11)", teks: "L.6.2a"
+  },
+  {
+    skill: "Comma — Nonrestrictive Elements",
+    sc: "#0F6E56", sb: "#E1F5EE",
+    q: 'One of these sentences contains an error in punctuation or capitalization. Which one?\n\n(1) "We finally reached the summit," said Tomás, exhausted but proud.\n(2) "I never thought we would make it," admitted Rosa.\n(3) "Do you remember how steep the third trail was?" Tomás asked.\n(4) "That trail," Rosa declared "Was the hardest thing I have ever climbed."',
+    tip: "Read each sentence and check whether the dialogue punctuation and capitalization follow the correct rules.",
+    hint: "When a dialogue tag (like 'she said' or 'he declared') splits a sentence in the middle, two things must be true: there should be a comma after the tag, and the word that resumes the speech should not be capitalized unless it begins a completely new sentence.",
+    opts: ["Sentence 1", "Sentence 2", "Sentence 3", "Sentence 4"],
+    ans: 3,
+    wrongs: [
+      "Sentence 1 is correctly punctuated. The comma after 'summit' separates the speech from the dialogue tag, and everything that follows is properly formatted.",
+      "Sentence 2 is correctly punctuated. The comma after 'make it' correctly separates the quoted speech from 'admitted Rosa.'",
+      "Sentence 3 is correctly punctuated. The question mark ends the question, and 'Tomás asked' follows without an incorrect capital letter.",
+      null
+    ],
+    exp: "Sentence 4 has two errors: a comma is missing after 'declared,' and 'Was' should be lowercase because it continues the same sentence — it is not the start of a new one. Corrected: \"That trail,\" Rosa declared, \"was the hardest thing I have ever climbed.\"",
+    mapTo: "Q16 (G6.11)", teks: "L.6.2a"
+  },
+  {
+    skill: "Conjunctive Adverbs",
+    sc: "#633806", sb: "#FAEEDA",
+    q: 'Which conjunctive adverb BEST completes the sentence?\n\n"Coach Hernandez was so proud of her students\' work that she decided to honor them. ___, she arranged for the club to visit the state apiary and meet professional beekeepers."',
+    tip: "Identify the logical relationship between the two sentences before choosing a connecting word.",
+    hint: "Ask: why does the second sentence happen? Is it because of something in the first sentence, or is it just added information, or does it contrast with it? The connecting word you choose must match that relationship exactly.",
+    opts: ["Moreover", "Nevertheless", "Consequently", "Meanwhile"],
+    ans: 2,
+    wrongs: [
+      "'Moreover' signals addition — it introduces extra information on top of what was already said. Consider whether the second sentence is truly just adding more, or whether it follows from something stated in the first.",
+      "'Nevertheless' signals contrast or concession — it means 'even so' or 'in spite of that.' Ask yourself: does the second sentence contradict or push back against the first, or does it follow from it?",
+      null,
+      "'Meanwhile' signals that two things are happening at the same time. Think about the sequence of events: does the second sentence happen simultaneously with the first, or after it?"
+    ],
+    exp: "'Consequently' means 'as a result.' The visit to the apiary is the direct outcome of Coach Hernandez's decision to honor her students — a cause-and-effect relationship. 'Moreover' is a common wrong choice because it feels connected, but it signals addition rather than result.",
+    mapTo: "Q6 (G6.11)", teks: "L.6.3a"
+  },
+  {
+    skill: "Sentence Structure",
+    sc: "#185FA5", sb: "#E6F1FB",
+    q: 'What type of sentence is the following?\n\n"Despite the freezing temperatures, the rescue team pressed forward through the mountain pass."',
+    tip: "Identify each clause in the sentence and determine whether it can stand alone.",
+    hint: "Try reading only the first part — 'Despite the freezing temperatures' — as a complete sentence on its own. Does it work? A group of words that cannot stand alone is a dependent element. Count how many independent clauses the sentence has, then classify it.",
+    opts: ["Simple", "Compound", "Complex", "Compound-complex"],
+    ans: 2,
+    wrongs: [
+      "A simple sentence has only independent clause elements — no dependent elements attached. Look again at the opening phrase. Can it stand alone as a complete sentence?",
+      "A compound sentence contains two or more independent clauses. Identify each clause here and ask whether each one can stand alone. How many independent clauses does this sentence actually have?",
+      null,
+      "A compound-complex sentence requires at least two independent clauses. Count the independent clauses in this sentence before choosing this option."
+    ],
+    exp: "This is a complex sentence. 'Despite the freezing temperatures' is a dependent phrase — it cannot stand alone. 'The rescue team pressed forward through the mountain pass' is the one independent clause. One independent clause + one dependent element = complex.",
+    mapTo: "Q22 (G6.11)", teks: "L.6.3a"
+  },
+  {
+    skill: "Figurative Language",
+    sc: "#534AB7", sb: "#EEEDFE",
+    q: 'What type of figurative language is used in the sentence?\n\n"Somewhere in the distance, thunder muttered warnings to the valley below."',
+    tip: "Think about what the author is doing to thunder and which literary device that represents.",
+    hint: "Ask two questions: (1) Is the author exaggerating a quality of thunder to an impossible or extreme degree? (2) Is the author giving thunder an ability that only living things have? One of those questions points to the right device.",
+    opts: [
+      "Hyperbole — the thunder is exaggerated to seem more dramatic",
+      "Simile — thunder is compared to a person using 'like' or 'as'",
+      "Personification — thunder is given the human ability to speak and warn",
+      "Metaphor — thunder is directly called a warning"
+    ],
+    ans: 2,
+    wrongs: [
+      "Hyperbole involves extreme exaggeration — something being impossibly large, fast, loud, etc. Look at what is actually happening to thunder in this sentence. Is a quantity or degree being stretched beyond belief, or is something else happening?",
+      "A simile makes a comparison using the word 'like' or 'as.' Read the sentence again — is there a 'like' or 'as' present? Is thunder actually being compared to something?",
+      null,
+      "A metaphor directly calls one thing another thing — it says X is Y. Is thunder being called a warning here, or is it doing something that only a living thing can do?"
+    ],
+    exp: "This is personification. Thunder — a non-living thing — is given the human abilities of muttering and issuing warnings. The defining feature of personification is attributing a living quality or action to something that cannot actually perform it.",
+    mapTo: "Q3 (G6.9 gap)", teks: "L.6.5a"
+  },
+  {
+    skill: "Context Clues — Word Meaning",
+    sc: "#D85A30", sb: "#FAECE7",
+    q: 'What does the word "sporadically" most nearly mean in the sentence below?\n\n"Volunteers who participate sporadically — only showing up once every few months — make it difficult to keep the garden thriving. Coordinators emphasize that steady, dependable involvement is essential."',
+    tip: "Use the surrounding text to figure out the meaning rather than guessing from the word itself.",
+    hint: "Look at what comes right after 'sporadically' — the dash introduces a phrase that defines it directly. There is also a contrast clue in the next sentence. What does the passage say is the desirable opposite of participating sporadically?",
+    opts: [
+      "enthusiastically — with great energy and excitement",
+      "irregularly and infrequently",
+      "with great skill and care",
+      "every single day without fail"
+    ],
+    ans: 1,
+    wrongs: [
+      "The passage clue is about how often someone shows up, not about their attitude or energy. Look at the phrase inside the dashes — what does it say about frequency?",
+      null,
+      "The clue in the passage is about participation patterns over time, not about the quality or skill of the work. Focus on the frequency clue embedded in the sentence.",
+      "If this were true, volunteering 'every single day' would be just as problematic as the behavior described. Read the inline clue again — how often do these volunteers actually show up?"
+    ],
+    exp: "'Sporadically' means irregularly and infrequently. The inline clue ('only showing up once every few months') defines it directly, and the contrast with 'steady, dependable involvement' confirms it.",
+    mapTo: "Q15 (G6.11)", teks: "L.6.4a"
+  },
+  {
+    skill: "Context Clues — Word Meaning",
+    sc: "#D85A30", sb: "#FAECE7",
+    q: 'Read the sentence and the dictionary entry, then choose the best definition.\n\nSentence: "The new software is designed for facilitating student collaboration across different campuses."\n\nDictionary entry for "facilitating":\n  1. making a process easier or more achievable\n  2. causing a physical or chemical reaction to proceed faster\n  3. operating or managing a group discussion or meeting\n  4. enabling a device to connect to a network\n\nWhich definition BEST matches how "facilitating" is used in the sentence?',
+    tip: "Test each definition against the sentence rather than matching by subject area.",
+    hint: "Substitute each definition into the sentence in place of 'facilitating' and read it aloud. Ask: does the substitution produce a sentence that means the same thing? Focus on what is actually being facilitated — identify the object of the action first.",
+    opts: [
+      "Definition 2 — causing a physical or chemical reaction to proceed faster",
+      "Definition 4 — enabling a device to connect to a network",
+      "Definition 3 — operating or managing a group discussion or meeting",
+      "Definition 1 — making a process easier or more achievable"
+    ],
+    ans: 3,
+    wrongs: [
+      "Try substituting definition 2 directly into the sentence. Does 'software designed for causing a chemical reaction to proceed faster' describe what the sentence is about? If not, move on to the next definition.",
+      "Definition 4 is about a device connecting to a network. Substitute it: 'software designed for enabling a device to connect to a network across campuses.' Does that match what the sentence actually says is being facilitated? Be careful not to match by topic rather than meaning.",
+      "Definition 3 means managing a group discussion. Substitute it: 'software designed for managing a group discussion across campuses.' Is that specific enough to capture what the sentence describes? Compare it to definition 1 using the same substitution method."
+    ],
+    exp: "Definition 1 fits best. Substituting: 'software designed for making student collaboration easier and more achievable across campuses' matches the sentence exactly. Definition 4 is the common trap — it sounds technology-related, but the thing being facilitated is student collaboration, not a device.",
+    mapTo: "Q19 (G6.9 gap)", teks: "L.6.4d"
+  },
+  {
+    skill: "Source Reliability",
+    sc: "#185FA5", sb: "#E6F1FB",
+    q: 'Students are writing an argumentative essay about whether cities should require residents to recycle. Which TWO sources would provide the most relevant AND reliable information?\n\nA) A personal blog post by a citizen explaining why she started composting\nB) A report from the Environmental Protection Agency on national recycling rates and costs\nC) A textbook chapter about waste disposal in ancient civilizations\nD) An article from a university environmental science department on the effectiveness of mandatory recycling programs\nE) A social media thread where users debate whether recycling actually helps',
+    tip: "Apply two separate tests to each source before deciding.",
+    hint: "For each source, ask: (1) Does it directly address the specific question of whether cities should require recycling today? (2) Does it come from a source with verified expertise — not a personal opinion or unverified user post? A source must pass both tests, not just one.",
+    opts: [
+      "A and E — they represent real community voices",
+      "B and D — expert sources directly relevant to the policy question",
+      "C and D — history and science both support the argument",
+      "A and C — personal stories and history are persuasive"
+    ],
+    ans: 1,
+    wrongs: [
+      "Community voices can be compelling in some contexts, but argumentative essays require evidence that is both verifiable and expert. Apply the reliability test individually to sources A and E.",
+      null,
+      "Source D passes both tests. Now apply both tests to source C — ask whether ancient history is relevant to a policy question about modern city requirements.",
+      "Apply both tests to sources A and C individually. Does each one address modern city recycling policy, and does each come from a verified expert institution?"
+    ],
+    exp: "B and D both pass both tests. The EPA report is relevant (national recycling data) and reliable (federal agency). The university article is relevant (effectiveness of mandatory programs) and reliable (academic expertise). Sources A and E fail the reliability test; source C fails the relevance test.",
+    mapTo: "Q9 (G6.11)", teks: "W.6.8"
+  },
+  {
+    skill: "Verb Tense",
+    sc: "#633806", sb: "#FAEEDA",
+    q: 'Which pair of verbs correctly fills in the blanks?\n\n"Every winter, the family travels to the mountains to ski. Last year, while they ___ (a) there, they ___ (b) a rare bird perched on the ski lodge railing."',
+    tip: "Find the time signals in the sentence and match each verb to the correct tense.",
+    hint: "There are two time signals: 'Every winter' (routine) and 'Last year' (a specific completed event in the past). Both blanks fall inside the 'Last year' part of the sentence. What tense is needed for actions that were completed at a specific time in the past?",
+    opts: [
+      "a: are staying / b: spotted",
+      "a: stayed / b: spotted",
+      "a: stayed / b: are spotting",
+      "a: stay / b: will spot"
+    ],
+    ans: 1,
+    wrongs: [
+      "'Are staying' is present continuous — it places the action in the present moment. The sentence contains a clear signal that both actions belong in the past. Find the time signal and match the tense to it.",
+      null,
+      "Blank (a) is correct, but 'are spotting' in blank (b) is present continuous. Both actions happened during the same past trip. Make sure both verbs match the same time frame.",
+      "Both 'stay' (present) and 'will spot' (future) contradict the time signal in the sentence. Read the sentence again and find the word that tells you when these events happened."
+    ],
+    exp: "'Stayed' and 'spotted' are both simple past tense, placing both actions in the completed past trip anchored by 'Last year.' Simple past is used for actions completed at a specific time in the past.",
+    mapTo: "Q11 (G6.11)", teks: "L.6.1"
+  },
+  {
+    skill: "Connotation & Word Choice",
+    sc: "#D85A30", sb: "#FAECE7",
+    q: 'Read the passage, then answer the question.\n\n"Camille had studied every counterargument and rehearsed her rebuttal until it was flawless. She walked to the podium knowing exactly what she would say."\n\nWhich word describes Camille with the MOST POSITIVE connotation for someone who is very confident in their abilities?',
+    tip: "Think about the feeling or attitude each word implies, not just its dictionary meaning.",
+    hint: "All four words are related to confidence, but they differ in what they suggest about a person's character and attitude toward others. Think about whether each word implies the confidence is earned and admirable, or whether it implies something negative about the person's ego or judgment.",
+    opts: ["arrogant", "overconfident", "self-assured", "conceited"],
+    ans: 2,
+    wrongs: [
+      "Think about the judgment this word makes about a person who uses it — does 'arrogant' describe confidence in a way that reflects well on the person, or does it imply something negative about how they treat others?",
+      "Consider whether 'overconfident' suggests the person's confidence is warranted. Given that Camille prepared thoroughly, does this word fit the picture the passage paints of her?",
+      null,
+      "Think about what 'conceited' implies beyond just feeling confident. Does it suggest something admirable, or does it carry a negative judgment about the person's character?"
+    ],
+    exp: "'Self-assured' describes healthy, earned confidence without implying disrespect or inflated self-importance. 'Arrogant,' 'overconfident,' and 'conceited' all carry negative connotations that do not match the positive portrayal of Camille in the passage.",
+    mapTo: "Q21 (G6.11)", teks: "L.6.5c"
+  }
+];
+
+var SKILL_COLORS = {
+  "Pronoun Case":"#534AB7","Pronoun Person Shift":"#534AB7","Possessive Pronouns":"#534AB7",
+  "Comma — Nonrestrictive Elements":"#0F6E56",
+  "Conjunctive Adverbs":"#633806","Sentence Structure":"#185FA5",
+  "Figurative Language":"#534AB7","Context Clues — Word Meaning":"#D85A30",
+  "Source Reliability":"#185FA5","Verb Tense":"#633806","Connotation & Word Choice":"#D85A30"
+};
+var SKILL_BGS = {
+  "Pronoun Case":"#EEEDFE","Pronoun Person Shift":"#EEEDFE","Possessive Pronouns":"#EEEDFE",
+  "Comma — Nonrestrictive Elements":"#E1F5EE",
+  "Conjunctive Adverbs":"#FAEEDA","Sentence Structure":"#E6F1FB",
+  "Figurative Language":"#EEEDFE","Context Clues — Word Meaning":"#FAECE7",
+  "Source Reliability":"#E6F1FB","Verb Tense":"#FAEEDA","Connotation & Word Choice":"#FAECE7"
+};
+
+var cur = 0, sel = null, submitted = false, scores = [], tried = [], lastWrongMsg = null;
+var hintUnlocked = false, hintOpen = false;
+
+function render() {
+  var app = document.getElementById('app');
+  if (cur >= QS.length) { renderDone(app); return; }
+  var q = QS[cur];
+  var pct = Math.round((cur / QS.length) * 100);
+  var sc = SKILL_COLORS[q.skill] || "#534AB7";
+  var sb = SKILL_BGS[q.skill] || "#EEEDFE";
+  var letters = ['A','B','C','D'];
+
+  var optsHtml = q.opts.map(function(o, i) {
+    var wasTried = tried.indexOf(i) !== -1;
+    var cls = 'opt';
+    var clickable = !wasTried && !submitted;
+    if (submitted && i === q.ans)      { cls += ' correct no-hover'; }
+    else if (wasTried)                  { cls += ' wrong-tried no-hover'; }
+    else if (!submitted && i === sel)   { cls += ' selected'; }
+    var onclk = clickable ? 'onclick="pick('+i+')"' : '';
+    return '<div class="'+cls+'" '+onclk+'>'
+      +'<div class="letter-circle">'+letters[i]+'</div>'
+      +'<div class="opt-text">'+o+'</div>'
+      +'</div>';
+  }).join('');
+
+  // Tip box with conditional eye icon
+  var eyeVisible = hintUnlocked ? ' visible' : '';
+  var eyeIcon = hintOpen ? EYE_OPEN : EYE_LOCKED;
+  var eyeLabel = hintOpen ? 'Hide hint' : 'Show hint';
+  var hintRevealClass = hintOpen ? 'hint-reveal open' : 'hint-reveal';
+
+  var tipHtml = '<div class="tip-box">'
+    +'<div class="tip-header">'
+    +'<span class="tip-label">Coaching Tip</span>'
+    +(q.hint ? '<button class="hint-btn'+eyeVisible+'" onclick="toggleHint()" title="'+eyeLabel+'">'+eyeIcon+eyeLabel+'</button>' : '')
+    +'</div>'
+    +'<div class="tip-text">'+q.tip+'</div>'
+    +(q.hint ? '<div class="'+hintRevealClass+'">'+q.hint+'</div>' : '')
+    +'</div>';
+
+  var feedbackHtml = '';
+  if (submitted) {
+    feedbackHtml = '<div class="feedback correct"><div class="feedback-label">Correct!</div><div class="feedback-text">'+q.exp+'</div></div>';
+  } else if (lastWrongMsg) {
+    feedbackHtml = '<div class="feedback wrong"><div class="feedback-label">Not quite — try again</div><div class="feedback-text">'+lastWrongMsg+'</div></div>';
+  }
+
+  var canSubmit = sel !== null && !submitted;
+  var btnHtml = submitted
+    ? '<button class="btn btn-primary" onclick="next()">'+(cur < QS.length-1 ? 'Next question &rarr;' : 'See results')+'</button>'
+    : '<button class="btn btn-primary" onclick="doSubmit()" '+(canSubmit?'':'disabled')+'>Check answer</button>';
+
+  app.innerHTML =
+    '<div class="quiz-header"><div class="avatar">LG</div><div class="header-text"><h1>Language Practice</h1><p>Based on your last 3 tests &middot; G6.9, G6.8, G6.7</p></div></div>'
+    +'<div class="progress-wrap">'
+    +'<div class="progress-meta"><span class="progress-label">Question '+(cur+1)+' of '+QS.length+'</span><span class="progress-skill">'+q.skill+'</span></div>'
+    +'<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>'
+    +'</div>'
+    +'<span class="skill-badge" style="color:'+sc+';background:'+sb+'">'+q.skill+'</span>'
+    +'<div class="card">'
+    +'<div class="question-text">'+q.q+'</div>'
+    +tipHtml
+    +'<div class="options">'+optsHtml+'</div>'
+    +feedbackHtml
+    +btnHtml
+    +'</div>';
+}
+
+function toggleHint() {
+  if (!hintUnlocked) return;
+  hintOpen = !hintOpen;
+  render();
+}
+
+function pick(i) {
+  if (submitted || tried.indexOf(i) !== -1) return;
+  sel = i;
+  render();
+}
+
+function doSubmit() {
+  if (sel === null || submitted) return;
+  if (sel === QS[cur].ans) {
+    submitted = true;
+    scores[cur] = (tried.length === 0);
+    lastWrongMsg = null;
+    render();
+  } else {
+    tried.push(sel);
+    hintUnlocked = true; // unlock eye icon after first wrong attempt
+    var msg = QS[cur].wrongs[sel];
+    if (!msg) msg = "That's not the right answer. Use the coaching tip — and the hint is now available if you need it.";
+    lastWrongMsg = msg;
+    sel = null;
+    render();
+  }
+}
+
+function next() {
+  cur++; sel = null; submitted = false; tried = []; lastWrongMsg = null;
+  hintUnlocked = false; hintOpen = false;
+  render();
+}
+
+function restart() {
+  cur = 0; sel = null; submitted = false; scores = []; tried = []; lastWrongMsg = null;
+  hintUnlocked = false; hintOpen = false;
+  render();
+}
+
+function renderDone(app) {
+  var total = QS.length;
+  var correct = scores.filter(function(s){return s;}).length;
+  var pct = Math.round((correct/total)*100);
+
+  var skillMap = {};
+  QS.forEach(function(q,i){
+    if (!skillMap[q.skill]) skillMap[q.skill]={total:0,correct:0,color:SKILL_COLORS[q.skill]||"#534AB7"};
+    skillMap[q.skill].total++;
+    if (scores[i]) skillMap[q.skill].correct++;
+  });
+
+  var rowsHtml = Object.keys(skillMap).map(function(name){
+    var d = skillMap[name];
+    var sp = Math.round((d.correct/d.total)*100);
+    var col = sp>=70?'#1D9E75':sp>=50?'#EF9F27':'#E24B4A';
+    return '<div class="skill-row">'
+      +'<div class="skill-row-name"><div class="skill-dot" style="background:'+d.color+'"></div>'+name+'</div>'
+      +'<div class="skill-row-score" style="color:'+col+'">'+d.correct+'/'+d.total+'</div>'
+      +'</div>';
+  }).join('');
+
+  var r=44, circ=2*Math.PI*r, dash=(pct/100)*circ;
+  var color=pct>=70?'#1D9E75':pct>=50?'#EF9F27':'#E24B4A';
+  var headline=pct>=80?'Great work, Lily!':pct>=60?'Good effort, Lily!':'Keep practicing, Lily!';
+
+  app.innerHTML =
+    '<div class="quiz-header"><div class="avatar">LG</div><div class="header-text"><h1>Language Practice</h1><p>Quiz complete</p></div></div>'
+    +'<div class="card" style="text-align:center;padding:30px 20px 24px">'
+    +'<div class="score-ring"><svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="'+r+'" fill="none" stroke="#e4e3df" stroke-width="8"/><circle cx="50" cy="50" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="8" stroke-dasharray="'+dash+' '+circ+'" stroke-linecap="round"/></svg><div class="score-pct">'+pct+'%</div></div>'
+    +'<div style="font-size:20px;font-weight:800;margin-bottom:4px">'+headline+'</div>'
+    +'<div style="font-size:14px;color:#666">'+correct+' of '+total+' correct on first try</div>'
+    +'</div>'
+    +'<div class="card"><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#888;margin-bottom:12px">Skill Breakdown</div>'+rowsHtml+'</div>'
+    +'<button class="btn btn-primary" onclick="restart()" style="margin-top:0">Practice again</button>'
+    +'<p style="font-size:12px;color:#888;text-align:center;margin-top:10px">Share these results with your teacher after completing the quiz.</p>';
+}
+
+render();
+</script>
+</body>
+</html>
